@@ -75,7 +75,7 @@
     left:275px;
     z-index:299;
     width:250px;
-    height:140px;
+    height:180px;
     background-color: #f9f9f9;
     border-style:solid;
     border-width:3px;
@@ -86,7 +86,9 @@
   </style>
 
   <script type="text/javascript" src="js/exampleUtil.js"></script>
+  <script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
   <script type="text/javascript">
+
   var nodes, edges, network;
 
       // convenience method to stringify a JSON object
@@ -94,94 +96,25 @@
         return JSON.stringify(obj, null, 4);
       }
 
-      function addNode() {
-        try {
-          nodes.add({
-            id: document.getElementById('node-id').value,
-            label: document.getElementById('node-label').value,
-            shape: document.getElementById('node-shape').value
-          });
-        }
-        catch (err) {
-          alert(err);
-        }
-      }
-
-      function updateNode() {
-        try {
-          nodes.update({
-            id: document.getElementById('node-id').value,
-            label: document.getElementById('node-label').value,
-            shape: document.getElementById('node-shape').value
-          });
-        }
-        catch (err) {
-          alert(err);
-        }
-      }
-      function removeNode() {
-        try {
-          nodes.remove({id: document.getElementById('node-id').value});
-        }
-        catch (err) {
-          alert(err);
-        }
-      }
-
-      function addEdge() {
-        try {
-          edges.add({
-            id: document.getElementById('edge-id').value,
-            from: document.getElementById('edge-from').value,
-            to: document.getElementById('edge-to').value
-          });
-        }
-        catch (err) {
-          alert(err);
-        }
-      }
-      function updateEdge() {
-        try {
-          edges.update({
-            id: document.getElementById('edge-id').value,
-            from: document.getElementById('edge-from').value,
-            to: document.getElementById('edge-to').value
-          });
-        }
-        catch (err) {
-          alert(err);
-        }
-      }
-      function removeEdge() {
-        try {
-          edges.remove({id: document.getElementById('edge-id').value});
-        }
-        catch (err) {
-          alert(err);
-        }
-      }
       function draw() {
           // create an array with nodes
           nodes = new vis.DataSet();
-nodes.add([
-  {id: '1', label: 'Node 1', shape: 'circle', notes: ""},
-  {id: '2', label: 'Node 2', shape: 'box', notes: ""},
-  {id: '3', label: 'Node 3', shape: 'circle', notes: "asdfasdf"},
-  {id: '4', label: 'Node 4', shape: 'circle', notes: ""},
-  {id: '5', label: 'Node 5', shape: 'circle', notes: ""}
-  ]);
+          nodes.add([
+            {id: '1', label: 'Node 1', shape: 'circle', data: ""},
+            {id: '2', label: 'Node 2', shape: 'box', data: ""},
+            {id: '3', label: 'Node 3', shape: 'circle', data: "asdfasdf"},
+            {id: '4', label: 'Node 4', shape: 'circle', data: ""},
+            {id: '5', label: 'Node 5', shape: 'circle', data: ""}
+            ]);
 
           // create an array with edges
           edges = new vis.DataSet();
-          // edges.on('*', function () {
-          //   document.getElementById('edges').innerHTML = JSON.stringify(edges.get(), null, 4);
-          // });
-edges.add([
-  {id: '1', from: '1', to: '2'},
-  {id: '2', from: '1', to: '3'},
-  {id: '3', from: '2', to: '4'},
-  {id: '4', from: '2', to: '5'}
-  ]);
+          edges.add([
+            {id: '1', from: '1', to: '2'},
+            {id: '2', from: '1', to: '3'},
+            {id: '3', from: '2', to: '4'},
+            {id: '4', from: '2', to: '5'}
+            ]);
 
           // create a network
           var container = document.getElementById('network');
@@ -196,14 +129,16 @@ edges.add([
             enabled: true,
             intiallyActive: true,
             addNode: function(nodeData, callback) {
-              document.getElementById('operation-popUp').innerHTML = "Add Node";
+              $('#operation-popUp').html('Add Node');
               document.getElementById('node-popup-id').value = "nodeID";
               document.getElementById('node-popup-label').value = "label";
+              document.getElementById('node-popup-notes').value = "notes";
               document.getElementById('saveButton-popup').onclick = function () {
                 nodes.add({
                   id: document.getElementById('node-popup-id').value,
                   label: document.getElementById('node-popup-label').value,
-                  shape: document.getElementById('node-shape').value
+                  shape: document.getElementById('node-shape').value,
+                  data: document.getElementById('node-popup-notes').value
                 });
                 document.getElementById('saveButton-popup').onclick = null;
                 document.getElementById('cancelButton-popup').onclick = null;
@@ -215,7 +150,18 @@ edges.add([
                 document.getElementById('network-popUp').style.display = 'none';
               }
               document.getElementById('network-popUp').style.display = 'block';
+            },
+            addEdge: function (data, callback) {
+            if (data.from == data.to) {
+              var r = confirm("Do you want to connect the node to itself?");
+              if (r == true) {
+                callback(data);
+              }
             }
+            else {
+              callback(data);
+            }
+          }
           }
           var options = {
             interaction: interactions,
@@ -226,9 +172,11 @@ edges.add([
           network.on("click", function () {
             var dataText = '';
             if (network.getSelectedNodes().length > 0) {
-              if (network.getSelectedNodes()[0].notes == null) {
-                dataText = "This node has no notes"
-              } else dataText = network.getSelectedNodes()[0].notes
+              dataText = network.getSelectedNodes()[0].data;
+              // if (network.getSelectedNodes()[0].data == null) {
+
+              //   dataText = "This node has no notes"
+              // } else dataText = network.getSelectedNodes()[0].data
             }
             document.getElementById('notes').innerHTML = JSON.stringify(dataText, null, 4);
           });
@@ -302,19 +250,24 @@ edges.add([
           <td>label</td><td><input id="node-popup-label" value="new value" /></td>
         </tr>
         <tr>
-          <td>Shape</td><td><Select id="node-shape" type="text" value="circle">
-            <option value="circle" selected>circle</option>
-            <option value="box">box</option>
+          <td>Shape</td>
+          <td><Select id="node-shape" type="text" value="circle">
+                <option value="circle" selected>circle</option>
+                <option value="box">box</option>
           </td>
         </tr>
         <tr>
           <td/><td>
-            <input type="button" value="save" id="saveButton-popup" />
+          <input type="button" value="save" id="saveButton-popup" />
           <input type="button" value="cancel" id="cancelButton-popup" /></td>
         </tr>
-        </table>
-      </div>
-      
-    </body>
-    </html>
+        <tr>
+          <td>Notes</td>
+          <td><input id="node-popup-notes" value="new value" /></td>
+        </tr>
+    </table>
+  </div>
+
+</body>
+</html>
 
