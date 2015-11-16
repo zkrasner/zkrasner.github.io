@@ -110,8 +110,6 @@ function sumPortfolio (user, portfolios) {
 $(function() {
   Parse.$ = jQuery;
 
-	// Initialize Parse with your Parse application javascript keys
-	Parse.initialize("IPFf3U6ekcWWlAbu3Ck38MSeF7hhA63lIMX1gPDZ", "EFgmizr1ZAhgmkc3RNWYmnQC0tOlIuaspPcT8rEE");
   var portfolioMap = {}
   computePortfolios(portfolioMap);
   
