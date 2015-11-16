@@ -28,7 +28,15 @@ function computePortfolios (portfolios) {
   console.log("computing portfolios")
   var PortQuery = new Parse.Query('Portfolio');
   console.log("about to find all portfolios")
-  PortQuery.find().then(function(results) {
+  PortQuery.find({
+    success: function (results) {
+      return results
+    },
+    error : function (error) {
+      console.log("error getting portfolios")
+      return error
+    }
+  }).then(function(results) {
     // Gets all of the Users
     console.log("got all of the users")
     return results
