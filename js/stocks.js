@@ -137,6 +137,7 @@ $(function() {
           var positionsTable = ""
           var positions = port.get('positions')
           var count = Object.keys(positions).length
+          var totalValue = [0,0,0,0,0,0,0]
           $.each(port.get('positions'), function (key, shares) {
             getQuotePromise(key).then(function (data) {
               var price = parseFloat(data.query.results.quote.LastTradePriceOnly)
@@ -144,19 +145,23 @@ $(function() {
               var changeDollars = addCommas((price - open).toFixed(2))
               var changePercent = parseFloat(data.query.results.quote.PercentChange).toFixed(2)
               var value = addCommas((price * shares).toFixed(2))
-              var dayGain = changeDollars * shares
+              var dayGain = (price - open) * shares
+              totalValue[5] += dayGain
+              totalValue[6] += price * shares
               positionsTable += "<tr><td>" + key + "</td>" + 
                               "<td>" + shares + "</td>" +
                               "<td>$" + addCommas((price).toFixed(2)) + "</td>" +
-                              "<td>$" + changeDollars + "</td>" +
+                              "<td>" + changeDollars + "</td>" +
                               "<td>" + changePercent + "%</td>" +
-                              "<td>$" + addCommas((dayGain).toFixed(2)) + "</td>" +
+                              "<td>" + addCommas((dayGain).toFixed(2)) + "</td>" +
                               "<td>$" + value + "</td></tr>"
               if (!--count) {
                 positionsTable += "<tr><td>Cash</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>" +
                                   "<td>$" + addCommas(port.get('cash').toFixed(2)) + "</td>"
-                positionsTable += "<tr><td>Total</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>" +
-                                  "<td>$" + addCommas(port.get('cash').toFixed(2)) + "</td>"  
+                totalValue[6] += port.get('cash')
+                positionsTable += "<tr><td>Total</td><td>-</td><td>-</td><td>-</td><td>-</td>" + 
+                                  "<td>" + addCommas(totalValue[5].toFixed(2)) + "</td>" +
+                                  "<td>$" + addCommas(totalValue[6].toFixed(2)) + "</td>"  
                 $('#portfolio tbody').html(positionsTable);
               }
             })
