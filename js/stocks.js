@@ -108,6 +108,7 @@ function sumPortfolio (user, portfolios) {
 
 //Main
 $(function() {
+  console.log("beginning the js")
   Parse.$ = jQuery;
 
   var portfolioMap = {}
