@@ -26,22 +26,22 @@ function getQuotePromise(ticker) {
 
 function computePortfolios (portfolios) {
   console.log("computing portfolios")
-  var UserQuery = new Parse.Query(Parse.User);
-  console.log("about to find users")
-  UserQuery.find().then(function(results) {
+  var PortQuery = new Parse.Query('Portfolio');
+  console.log("about to find all portfolios")
+  PortQuery.find().then(function(results) {
     // Gets all of the Users
     console.log("got all of the users")
     return results
-  }).then(function (users) {
+  }).then(function (ports) {
     // console.log(users)
     var userMap = {}
-    for (var i = 0; i < users.length; i++)
+    for (var i = 0; i < ports.length; i++)
     {
-      userMap[users[i].get('username')] = users[i]
+      userMap[ports[i].get('username')] = ports[i]
     }
 
     var portfolios = {}
-    var count = users.length
+    var count = ports.length
     $.each(userMap, function (name, user) {
       sumPortfolio(user, portfolios)
     })
