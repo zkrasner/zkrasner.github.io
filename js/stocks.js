@@ -26,7 +26,8 @@ function getQuotePromise(ticker) {
 
 function computePortfolios (portfolios) {
   console.log("computing portfolios")
-  var UserQuery = new Parse.Query('User');
+  var UserQuery = new Parse.Query('_User');
+  console.log("about to find users")
   UserQuery.find().then(function(results) {
     // Gets all of the Users
     console.log("got all of the users")
