@@ -148,7 +148,12 @@ $(function() {
               var dayGain = (price - open) * shares
               totalValue[5] += dayGain
               totalValue[6] += price * shares
-              positionsTable += "<tr><td>" + key + "</td>" + 
+              if (dayGain >= 0) {
+                positionsTable += "<tr BGCOLOR=\"#00b300\">"
+              } else {
+                positionsTable += "<tr BGCOLOR=\"#ff3f00\">"
+              }
+              positionsTable += "<td>" + key + "</td>" + 
                               "<td>" + shares + "</td>" +
                               "<td>$" + addCommas((price).toFixed(2)) + "</td>" +
                               "<td>" + changeDollars + "</td>" +
