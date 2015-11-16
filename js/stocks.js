@@ -25,9 +25,11 @@ function getQuotePromise(ticker) {
 
 
 function computePortfolios (portfolios) {
-  var UserQuery = new Parse.Query('_User');
+  console.log("computing portfolios")
+  var UserQuery = new Parse.Query('User');
   UserQuery.find().then(function(results) {
     // Gets all of the Users
+    console.log("got all of the users")
     return results
   }).then(function (users) {
     // console.log(users)
@@ -116,6 +118,7 @@ $(function() {
   
 
   $('#login-form').submit(function(e) {
+
     e.preventDefault();
     var username = $("#username").val().trim();
     var password = $("#password").val().trim();
