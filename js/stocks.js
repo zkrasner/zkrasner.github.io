@@ -154,9 +154,9 @@ $(function() {
               totalValue[5] += dayGain
               totalValue[6] += price * shares
               if (dayGain >= 0) {
-                positionsTable += "<tr BGCOLOR=\"#00b300\">"
+                positionsTable += "<tr class='success'>"
               } else {
-                positionsTable += "<tr BGCOLOR=\"#ff3f00\">"
+                positionsTable += "<tr class='danger'>"
               }
               positionsTable += "<td>" + key + "</td>" + 
                               "<td>" + shares + "</td>" +
