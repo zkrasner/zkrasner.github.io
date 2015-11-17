@@ -149,16 +149,21 @@ function showPortfolio(username) {
             var positions = port.get('positions')
             var count = Object.keys(positions).length
             var totalValue = [0,0,0,0,0,0,0]
+            var shortCover = 0
             $.each(port.get('positions'), function (key, shares) {
               getQuotePromise(key).then(function (data) {
                 var price = parseFloat(data.query.results.quote.LastTradePriceOnly)
                 var open = parseFloat(data.query.results.quote.Open)
-                var changeDollars = addCommas((price - open).toFixed(2))
+                var changeDollars = addCommas((price - open).toFixed(3))
                 var changePercent = parseFloat(data.query.results.quote.PercentChange).toFixed(2)
-                var value = addCommas((price * shares).toFixed(3))
+                var value = price * shares
+                if (value < 0) {
+                  shortCover += value
+                }
                 var dayGain = (price - open) * shares
                 totalValue[5] += dayGain
                 totalValue[6] += price * shares
+
                 if (dayGain >= 0) {
                   positionsTable += "<tr class='success'>"
                 } else {
@@ -170,10 +175,16 @@ function showPortfolio(username) {
                                 "<td>" + changeDollars + "</td>" +
                                 "<td>" + changePercent + "%</td>" +
                                 "<td>" + addCommas((dayGain).toFixed(2)) + "</td>" +
-                                "<td>$" + value + "</td></tr>"
+                                "<td>$" + addCommas((value).toFixed(2)) + "</td></tr>"
                 if (!--count) {
+                  var cash = port.get('cash')
+                  if (shortCover != 0) {
+                    positionsTable += "<tr><td>Shorted</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>" +
+                                    "<td>$" + addCommas(shortCover.toFixed(2)) + "</td>"
+                    cash = cash + 2*shortCover
+                  }
                   positionsTable += "<tr><td>Cash</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>" +
-                                    "<td>$" + addCommas(port.get('cash').toFixed(2)) + "</td>"
+                                    "<td>$" + addCommas(cash.toFixed(2)) + "</td>"
                   totalValue[6] += port.get('cash')
                   positionsTable += "<tr><td>Total</td><td>-</td><td>-</td><td>-</td><td>-</td>" + 
                                     "<td>" + addCommas(totalValue[5].toFixed(2)) + "</td>" +
