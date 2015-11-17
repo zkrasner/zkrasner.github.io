@@ -79,33 +79,113 @@ function sumPortfolio (user, portfolios) {
   var portfolioQuery = new Parse.Query('Portfolio')
   portfolioQuery.equalTo('username', user.get('username'))
   var total = 0
-  portfolioQuery.first().then( function(port) 
-  {
-    // Get the positions in this portfolio
-    var positions = port.get('positions')
-    var total = port.get('cash')
+  portfolioQuery.first({
+    success: function(port){
+      // Get the positions in this portfolio
+      var positions = port.get('positions')
+      var total = port.get('cash')
 
-    if (!$.isEmptyObject(positions)) {
-      var tickers = Object.keys(positions)
-      // Get the prices for these stocks
-      var count = Object.keys(positions).length
-      $.each(positions, function (key, value) {
-        getQuote(key, value).then( function (price) {
-          total += price
-          //console.log("after " + key + ": " + total)
-          if (!--count) {
-            //console.log("finished getting quotes for " + user.get('username'))
-            portfolios[user.get('username')] = total
-            //console.log(portfolios)
-            updateSummaryTable(portfolios)
-          }
+      if (!$.isEmptyObject(positions)) {
+        var tickers = Object.keys(positions)
+        // Get the prices for these stocks
+        var count = Object.keys(positions).length
+        $.each(positions, function (key, value) {
+          getQuote(key, value).then( function (price) {
+            total += price
+            //console.log("after " + key + ": " + total)
+            if (!--count) {
+              //console.log("finished getting quotes for " + user.get('username'))
+              portfolios[user.get('username')] = total
+              //console.log(portfolios)
+              updateSummaryTable(portfolios)
+            }
+          })
         })
-      })
-    } else {
-      portfolios[user.get('username')] = total
-      updateSummaryTable(portfolios)
+      } else {
+        portfolios[user.get('username')] = total
+        updateSummaryTable(portfolios)
+      }
+    },
+    error: function (error) {
+      handleParseError(error)
     }
   })
+}
+
+function handleParseError(err) {
+  switch (err.code) {
+    case Parse.Error.INVALID_SESSION_TOKEN:
+      Parse.User.logOut();
+      // If web browser, render a log in screen
+      // If Express.js, redirect the user to the log in route
+      break;
+    // Other Parse API errors that you want to explicitly handle
+  }
+}
+
+function loggedIn() {
+  console.log(Parse.User.current());
+  $('#login-form').hide();
+  $('#table-login-message').hide();
+  $('#trade-form').removeClass("hidden");
+  $('#logged-in-as').text("Logged in as " + Parse.User.current().get("username"));
+}
+
+function loggedOut() {
+  console.log("Logging out");
+  $('#login-form').show();
+  $('#table-login-message').show();
+  $('#trade-form').addClass("hidden");
+  $('#portfolio tbody').html("");
+}
+
+function showPortfolio(username) {
+  var portfolioQuery = new Parse.Query('Portfolio')
+        portfolioQuery.equalTo('username', username)
+        portfolioQuery.first({
+          success: function (port) {
+            //display the various positions
+            var positionsTable = ""
+            var positions = port.get('positions')
+            var count = Object.keys(positions).length
+            var totalValue = [0,0,0,0,0,0,0]
+            $.each(port.get('positions'), function (key, shares) {
+              getQuotePromise(key).then(function (data) {
+                var price = parseFloat(data.query.results.quote.LastTradePriceOnly)
+                var open = parseFloat(data.query.results.quote.Open)
+                var changeDollars = addCommas((price - open).toFixed(2))
+                var changePercent = parseFloat(data.query.results.quote.PercentChange).toFixed(2)
+                var value = addCommas((price * shares).toFixed(3))
+                var dayGain = (price - open) * shares
+                totalValue[5] += dayGain
+                totalValue[6] += price * shares
+                if (dayGain >= 0) {
+                  positionsTable += "<tr class='success'>"
+                } else {
+                  positionsTable += "<tr class='danger'>"
+                }
+                positionsTable += "<td>" + key + "</td>" + 
+                                "<td>" + shares + "</td>" +
+                                "<td>$" + addCommas((price).toFixed(2)) + "</td>" +
+                                "<td>" + changeDollars + "</td>" +
+                                "<td>" + changePercent + "%</td>" +
+                                "<td>" + addCommas((dayGain).toFixed(2)) + "</td>" +
+                                "<td>$" + value + "</td></tr>"
+                if (!--count) {
+                  positionsTable += "<tr><td>Cash</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>" +
+                                    "<td>$" + addCommas(port.get('cash').toFixed(2)) + "</td>"
+                  totalValue[6] += port.get('cash')
+                  positionsTable += "<tr><td>Total</td><td>-</td><td>-</td><td>-</td><td>-</td>" + 
+                                    "<td>" + addCommas(totalValue[5].toFixed(2)) + "</td>" +
+                                    "<td>$" + addCommas(totalValue[6].toFixed(2)) + "</td>"  
+                  $('#portfolio tbody').html(positionsTable);
+                }
+              })
+            })
+          },
+          error: function (error) {
+            handleParseError(error)
+          }});
 }
 
 
@@ -114,76 +194,44 @@ $(function() {
   console.log("beginning the js")
   Parse.$ = jQuery;
 
-
+  if (Parse.User.current() != null) {
+    loggedIn();
+    showPortfolio(Parse.User.current().get('username'))
+  }
 
   var portfolioMap = {}
   computePortfolios(portfolioMap);
   
 
-  $('#login-form').submit(function(e) {
+  $('#login-form').submit(function (e) {
 
     e.preventDefault();
     var username = $("#username").val().trim();
     var password = $("#password").val().trim();
-
+    $("#username").val("")
+    $("#password").val("")
     Parse.User.logIn(username, password, {
       success: function(user) {
-        // console.log(user);
-        $('#login-form').hide();
-        $('#table-login-message').hide();
-        $('#trade-form').removeClass("hidden");
-        $('#logged-in-as').text("Logged in as " + user.get("username"));
-
+        
+        loggedIn();
         //get this user's portfolio
-        var portfolioQuery = new Parse.Query('Portfolio')
-        portfolioQuery.equalTo('username', Parse.User.current().get('username'))
-        portfolioQuery.first().then( function (port) {
-          //display the various positions
-          var positionsTable = ""
-          var positions = port.get('positions')
-          var count = Object.keys(positions).length
-          var totalValue = [0,0,0,0,0,0,0]
-          $.each(port.get('positions'), function (key, shares) {
-            getQuotePromise(key).then(function (data) {
-              var price = parseFloat(data.query.results.quote.LastTradePriceOnly)
-              var open = parseFloat(data.query.results.quote.Open)
-              var changeDollars = addCommas((price - open).toFixed(2))
-              var changePercent = parseFloat(data.query.results.quote.PercentChange).toFixed(2)
-              var value = addCommas((price * shares).toFixed(2))
-              var dayGain = (price - open) * shares
-              totalValue[5] += dayGain
-              totalValue[6] += price * shares
-              if (dayGain >= 0) {
-                positionsTable += "<tr class='success'>"
-              } else {
-                positionsTable += "<tr class='danger'>"
-              }
-              positionsTable += "<td>" + key + "</td>" + 
-                              "<td>" + shares + "</td>" +
-                              "<td>$" + addCommas((price).toFixed(2)) + "</td>" +
-                              "<td>" + changeDollars + "</td>" +
-                              "<td>" + changePercent + "%</td>" +
-                              "<td>" + addCommas((dayGain).toFixed(2)) + "</td>" +
-                              "<td>$" + value + "</td></tr>"
-              if (!--count) {
-                positionsTable += "<tr><td>Cash</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>" +
-                                  "<td>$" + addCommas(port.get('cash').toFixed(2)) + "</td>"
-                totalValue[6] += port.get('cash')
-                positionsTable += "<tr><td>Total</td><td>-</td><td>-</td><td>-</td><td>-</td>" + 
-                                  "<td>" + addCommas(totalValue[5].toFixed(2)) + "</td>" +
-                                  "<td>$" + addCommas(totalValue[6].toFixed(2)) + "</td>"  
-                $('#portfolio tbody').html(positionsTable);
-              }
-            })
-          })
-          
-        })
+        showPortfolio(Parse.User.current().get('username'))
       },
       error: function(user, error) {
         alert("Login Failed");
+        handleParseError(error)
       }
     })
-  })
+  });
+
+  $('#logout_button').click(function (e) {
+    e.preventDefault();
+    console.log("asdfa")
+    Parse.User.logOut().then( function () {
+      console.log("Successfully logged out")
+      loggedOut();
+    })
+  });
 
   $('#search-button').click( function (e) {
     e.preventDefault();
