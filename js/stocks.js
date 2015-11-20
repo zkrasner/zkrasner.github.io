@@ -154,8 +154,12 @@ function showPortfolio(username) {
               getQuotePromise(key).then(function (data) {
                 var price = parseFloat(data.query.results.quote.LastTradePriceOnly)
                 var open = parseFloat(data.query.results.quote.Open)
+                console.log(open)
+                var changePercent = parseFloat(data.query.results.quote.PercentChange)
+                if (isNaN(open)) {
+                  open = price + price * changePercent/100
+                }
                 var changeDollars = addCommas((price - open).toFixed(3))
-                var changePercent = parseFloat(data.query.results.quote.PercentChange).toFixed(2)
                 var value = price * shares
                 if (value < 0) {
                   shortCover += value
@@ -173,7 +177,7 @@ function showPortfolio(username) {
                                 "<td>" + shares + "</td>" +
                                 "<td>$" + addCommas((price).toFixed(2)) + "</td>" +
                                 "<td>" + changeDollars + "</td>" +
-                                "<td>" + changePercent + "%</td>" +
+                                "<td>" + changePercent.toFixed(2) + "%</td>" +
                                 "<td>" + addCommas((dayGain).toFixed(2)) + "</td>" +
                                 "<td>$" + addCommas((value).toFixed(2)) + "</td></tr>"
                 if (!--count) {
@@ -190,6 +194,7 @@ function showPortfolio(username) {
                                     "<td>" + addCommas(totalValue[5].toFixed(2)) + "</td>" +
                                     "<td>$" + addCommas(totalValue[6].toFixed(2)) + "</td>"  
                   $('#portfolio tbody').html(positionsTable);
+                  return cash
                 }
               })
             })
@@ -204,10 +209,10 @@ function showPortfolio(username) {
 $(function() {
   console.log("beginning the js")
   Parse.$ = jQuery;
-
+  var availableCash = 0
   if (Parse.User.current() != null) {
     loggedIn();
-    showPortfolio(Parse.User.current().get('username'))
+    availableCash = showPortfolio(Parse.User.current().get('username'))
   }
 
   var portfolioMap = {}
@@ -226,7 +231,7 @@ $(function() {
         
         loggedIn();
         //get this user's portfolio
-        showPortfolio(Parse.User.current().get('username'))
+        availableCash = showPortfolio(Parse.User.current().get('username'))
       },
       error: function(user, error) {
         alert("Login Failed");
@@ -255,6 +260,7 @@ $(function() {
       portfolioQuery.equalTo('username', Parse.User.current().get('username'))
       portfolioQuery.first().then( function (port) {
         var total = port.get('cash')
+        console.log(total + " " + availableCash)
         $('#max-purchase-label').text("Max shares: " + addCommas(Math.floor(total/price)))
       })
     })
